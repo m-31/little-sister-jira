@@ -1,0 +1,99 @@
+# The `jira` aspect — where the "raise an issue" chips send the browser.
+#
+# This is the *shape*: every key the extension accepts, with placeholder values and
+# a comment per knob saying what it decides. Copy it into your deployment's
+# configuration root as `config/jira.yaml` and replace the ids with your own.
+#
+# It is a **registered configuration aspect** (little-sister ADR-0035): this package
+# declares the name, and little-sister then layers and shape-checks the file exactly
+# like one of its own. There is one per configuration root, and the first root that
+# carries it wins whole.
+#
+# Nothing here is a credential, and none of it is a secret reference: a chip is a
+# link to Jira's own create-issue form, and the browser's Jira session decides who is
+# filing. Delete this file and the chips simply stop appearing.
+#
+# The ids come from Jira's own API:
+#   <base_url>/rest/api/3/project/<KEY>                      -> project_id
+#   <base_url>/rest/api/3/issuetype/project?projectId=<id>   -> issue_type_id
+#   <base_url>/rest/api/3/field                              -> the customfield_* numbers
+
+# --- The project ----------------------------------------------------------------
+# Required, all three. A misspelled key here is a warning and a chip that quietly
+# opens the wrong project's form, so the extension names any key it does not know.
+#
+# `base_url` is checked: it must be an http(s) URL naming a host, with no query or
+# fragment. The value below is deliberately NOT one — copying this file without
+# editing it is refused at startup and costs you the chips, which is the point. A
+# chip pointing at a host that cannot resolve looks exactly like a working one.
+base_url: https://<your-site>.atlassian.net
+project_id: "10000"
+issue_type_id: "10002"
+
+# Summary length before it is cut with an ellipsis. Jira's own limit is 255; the
+# summary is "<node path>: <reason on one line>", path first, because a board shows
+# the head of a summary and cuts the tail.
+summary_limit: 200
+
+# How long the whole chip URL may get — a bound on the **transport**, not on the
+# display. Everything a draft carries travels in a GET query string, where
+# percent-encoding roughly triples a traceback: forty findings under one band, which
+# is exactly what the node chip is for, can reach nine thousand characters. Past
+# your server's request-line limit the operator gets a 414 from Jira instead of a
+# form, and the chip still looks like it works.
+#
+# The default below leaves roughly two kilobytes under the common 8 KB default
+# (Tomcat's `maxHttpHeaderSize`, nginx's `large_client_header_buffers`) for the
+# headers a logged-in Jira session sends. Confirm the real ceiling against your own
+# Jira and set it here; only the description and the configured fields are ever cut,
+# never the ids or the summary, and the body keeps its link back to the node for as
+# long as there is room for it at all.
+# url_limit: 6000
+
+# --- Defaults both chips inherit ------------------------------------------------
+# A placement below may override either of these.
+label: Jira
+
+# Extra Jira fields, by field id, each a template over the tokens listed further
+# down. A custom field's *number* is a fact about one Jira project, which is why it
+# is configured rather than coded.
+fields:
+  # e.g. a short-description field your project marks as required
+  customfield_10101: "{name}: {reason}"
+
+# --- Which chips this deployment offers -----------------------------------------
+#
+#   reason   one chip per reason line of a failing leaf — the right place when a
+#            check declares its findings as members, so each is separately
+#            actionable (little-sister ADR-0036)
+#   node     one chip for the whole node, in the card head and beside the status on
+#            the leaf page — the right place when the reasons are prose, because a
+#            failure message and its stack trace are one condition and want one
+#            ticket; with several addressable members it is the "Jira all" shortcut,
+#            while one member keeps only its own reason chip
+#
+# Omit this block entirely and only the per-reason chip appears, so installing the
+# node chip is a decision rather than a button that arrives with an upgrade. Naming
+# a placement with an empty mapping takes the defaults above.
+#
+# A field template may interpolate:
+#
+#   {path}      the node's absolute path, e.g. /platform/ci/actions
+#   {name}      its last segment, e.g. actions
+#   {status}    its status, e.g. ERROR   (little-sister's own config/actions.yaml
+#               spells this one {code} — the two files are separate vocabularies)
+#   {observed}  when the check last wrote it
+#   {reason}    the reason line — on the node chip, the node's *first* line
+#   {reasons}   every reason line, newline-separated — the node chip's body
+#   {summary}   the summary this draft was given
+#   {url}       the node's absolute dashboard URL
+#
+# An unknown token is left standing, so a typo shows up in the draft instead of
+# vanishing from it.
+
+actions:
+  reason: {}
+  node:
+    label: Jira all
+    fields:
+      customfield_10101: "{name}: {reasons}"

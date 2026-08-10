@@ -1,0 +1,79 @@
+# Changelog
+
+All notable changes to little-sister-jira, newest first. The format follows
+[Keep a Changelog](https://keepachangelog.com/). These notes are for the
+deployments that install this package, not a work log.
+
+Treat **a new or renamed configuration key, a retired token, or a change to which
+slots are filled as a breaking change** and say so at the top: a deployment's
+`config/jira.yaml` and the drafts its operators expect are built on those.
+
+## [Unreleased]
+
+## [0.1.0] - 2026-08-10
+
+### Added
+
+- **First release: the Jira issue chip**, extracted from the private deployment it
+  grew up in. The behavior is unchanged — same drafts, same placement rules, same
+  configuration file. It is a **surface extension**: it registers no check type and
+  measures nothing.
+- Two placements, chosen by the `actions:` block. **`reason`** puts one chip beside
+  each reason line of a failing leaf, which is the right place where a check
+  declares its findings as addressable members. **`node`** puts one chip on the
+  whole node — in the card head and beside the status on the leaf page — which is
+  the right place where the reasons are prose, and which doubles as the *file them
+  all* shortcut when several members share one condition. **Omitting the block
+  leaves only the per-reason chip**, so installing the node chip is a decision.
+- The chip is a **plain link** to Jira's own pre-filled create-issue form, opened in
+  a new tab. This package stores no Jira credential and holds no token; the
+  browser's Jira session decides who is filing, and nothing exists until a human
+  presses Create.
+- The **`jira` configuration aspect** — `config/jira.yaml`, layered and
+  shape-checked by little-sister like one of its own. `base_url`, `project_id` and
+  `issue_type_id` are required; `label`, `summary_limit` and a `fields` map of Jira
+  field ids to templates are optional, and a placement may override `label` and
+  `fields` — the ids and the limits are properties of the project and its server,
+  not of a placement.
+  A field template interpolates `{path}` `{name}` `{status}` `{observed}`
+  `{reason}` `{reasons}` `{summary}` `{url}` by plain substitution, so a brace in
+  captured output cannot raise and an unknown token is left standing.
+- **`url_limit` bounds the whole chip URL**, default 6000. Everything a draft
+  carries travels in a `GET` query string, where percent-encoding roughly triples a
+  traceback: forty findings under one band — the case the node chip exists for —
+  reach around nine thousand characters, and past a server's request-line limit the
+  operator gets a **414 from Jira instead of a form**, which is worse than no chip
+  because the chip still looks like it works. Only the description and the
+  configured fields are cut, never the ids or the summary, and a cut body says so
+  and keeps its link back to the node — the link is the last thing given up. A
+  `description` set in `fields:` is yours: it is cut, never rebuilt. The common ceiling is 8 KB (Tomcat's
+  `maxHttpHeaderSize`, nginx's `large_client_header_buffers`) but the real one is
+  your Jira's: confirm it and set the key.
+- **`base_url` is validated** — an http(s) URL naming a host, with no query or
+  fragment. A placeholder copied out of the example is refused at startup, where it
+  used to render a clickable chip pointing at a host that cannot resolve.
+- **Where both placements are offered, each steps aside where the other is the right
+  subject.** The node chip already stood down for a node with exactly one member;
+  now the per-line chips stand down on **prose**, where a failure message and its
+  stack trace are one condition and a chip per line would offer to file a traceback.
+  A deployment that offers only one placement keeps it in every case.
+- **A missing or broken `config/jira.yaml` costs the button and nothing else** —
+  the failure is logged, the chips decline every line, and the dashboard is
+  untouched. A configuration *tree* that will not resolve is a different thing and
+  stays fatal: little-sister refuses to start, which is its decision to make.
+
+### Requires
+
+- `little-sister >= 0.3.11` — the floor is 0.3.11, not the 0.3.0 that first
+  promised the template slots, registered configuration aspects and typed value
+  readers this package writes against: 0.3.0 was tagged but never uploaded, so it
+  names no version a resolver can fetch, and it is 0.3.11 that lowered the
+  library's own Python floor to the one below.
+  A **floor, never a pin**. The package declares check API epoch **1**; a
+  library that has moved past that surface refuses at startup rather than failing as
+  an import error from inside this package.
+- **Python 3.11 or newer** — the library's floor, not a higher one of this
+  package's own: a plugin that asked for more would mean somebody installs
+  little-sister and then cannot install the package they came for. The claim is
+  checked rather than declared — the type check runs against 3.11 on every commit
+  and the whole suite against a real 3.11 on every release.

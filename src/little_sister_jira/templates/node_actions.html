@@ -1,0 +1,17 @@
+{#- The `node.actions` filler (ADR-0001; little-sister ADR-0034's second slot): one
+    chip for the whole node, in the card head and beside the status on the leaf page.
+
+    The twin of `reason_actions.html`, and deliberately identical apart from the chip
+    class: the two rails are different places, and a chip belongs to the one it is in
+    (`node-action` here, `reason-action` there). Everything else — a plain link, no
+    script, no token, `target="_blank"` so a monitoring page never navigates away
+    from what it is watching — is the same decision for the same reasons.
+
+    The draft behind it differs, though: its summary is the node's *first* reason line
+    and its description carries **every** line, because a node ticket is about the
+    whole condition rather than one member of it. That is `jira.py`'s doing; this file
+    only places what it computed, rendered by little-sister's own Jinja so the reason
+    text folded into `jira_title` is escaped by the same rules as the reason itself
+    (little-sister ADR-0018). -#}
+<a class="node-action" href="{{ jira_url }}" target="_blank" rel="noopener noreferrer"
+   title="{{ jira_title }}" aria-label="{{ jira_title }}"><svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>{{ jira_label }}</a>

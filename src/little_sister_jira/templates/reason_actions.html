@@ -1,0 +1,15 @@
+{#- The `reason.actions` filler (ADR-0001; little-sister ADR-0034): one chip beside a
+    failing leaf's reason line that opens Jira's own create-issue form, pre-filled.
+
+    A plain link, on purpose — no script, no fetch, no token. The browser carries the
+    operator's Jira session, Jira renders its own form, and nothing is created until
+    a human presses Create. `target="_blank"` because a monitoring page must not
+    navigate away from what it is watching.
+
+    Every value here is computed in `jira.py` and rendered by little-sister's own
+    Jinja, so the reason text folded into `jira_title` is escaped by the same rules
+    as the reason itself (little-sister ADR-0018). The chip wears little-sister's
+    `.reason-action` class and inks its glyph in `currentColor`, so it reads on every
+    status tint and every theme without knowing which one it is on. -#}
+<a class="reason-action" href="{{ jira_url }}" target="_blank" rel="noopener noreferrer"
+   title="{{ jira_title }}" aria-label="{{ jira_title }}"><svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>{{ jira_label }}</a>
