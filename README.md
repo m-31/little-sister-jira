@@ -17,7 +17,7 @@ Jira credential and holds no token.
 
 ## The contract
 
-- **Requires** `little-sister >= 0.3.11` — a floor, never a pin.
+- **Requires** `little-sister >= 0.3.13` — a floor, never a pin.
 - **Runs on** Python **3.11 or newer** — the library's floor, not a higher
   one of its own.
 - **Registers** the `jira` **configuration aspect** (`config/jira.yaml`) and fills
@@ -27,14 +27,12 @@ Jira credential and holds no token.
 ## Install
 
 ```toml
-# your deployment's pyproject.toml
+# your deployment's pyproject.toml — both come from the index
 [project]
-dependencies = ["little-sister", "little-sister-jira"]
-
-# Only while *this* one comes from git: little-sister resolves from the index.
-# Delete the table once this package is on an index too — nothing else changes.
-[tool.uv.sources]
-little-sister-jira = { git = "…/little-sister-jira.git", tag = "v0.1.0" }
+# Pin them. A deployment names exact versions so an upgrade is a deliberate edit
+# rather than drift; a plugin is the one that declares a floor, because two plugins
+# that each pinned could not be installed together.
+dependencies = ["little-sister==0.3.13", "little-sister-jira==0.1.0"]
 ```
 
 ```python
@@ -152,7 +150,7 @@ follow this package into every deployment that installs it.
 ```toml
 # pyproject.toml — locally, never committed
 [tool.uv.sources]
-little-sister = { path = "../little-sister" }
+little-sister = { git = "file:///path/to/little-sister" }
 ```
 
 Restore `uv.lock` with it. The next `uv run` — the pre-commit gate is one — rewrites

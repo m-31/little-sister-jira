@@ -14,89 +14,6 @@
 > little-sister's is written out as **little-sister ADR-00NN**, because the two
 > numbering spaces overlap.
 
-> **Update (2026-08-03):** the chip has a **second placement**. little-sister's
-> `node.actions` slot (its ADR-0034, second slot) takes an action whose subject is the
-> whole node, and that is the right one where a check's reasons are **prose** — a
-> failure message and its stack trace are one condition and want one ticket, not two
-> buttons. Where a check declares its findings as **members** (little-sister ADR-0036)
-> the per-line chip stays right. So `config/jira.yaml` grows an **`actions:` block**
-> naming the placements a deployment offers (`reason`, `node`), each inheriting the
-> file's `label` and `fields` and free to override either; the ids and the summary
-> limit stay at the top level, because they are properties of the *project* rather
-> than of a placement. **An absent block means the reason chip only**, so installing
-> the node chip stays a decision rather than a button that arrives with an upgrade.
->
-> The node draft differs from the per-line one: its **summary** is the node's *first*
-> reason line (same flattening and clamp) and its **description carries every line**,
-> because the ticket is about the whole condition. A new `{reasons}` token expands to
-> all lines, newline-separated — the same name little-sister's own
-> `config/actions.yaml` uses, so an operator who knows one file knows this one.
->
-> Its decline rules differ in one deliberate way: the node chip **does not decline
-> containers**, because the slot renders in the card head and a card at depth 1 *is* a
-> container. It declines a node with **no reasons** instead — a container with no
-> reading of its own has nothing to put in a ticket, and a draft summarized as
-> `/platform/ci:` with nothing after it is worse than no chip. Both chips still
-> decline a healthy node.
-
-> **Update (2026-08-05):** when both placements are enabled, the node chip is also the
-> aggregate **Jira all** shortcut for several addressable members. It declines a node
-> with exactly one member because that member's Jira chip already represents the same
-> action; showing both is duplication, not another useful choice. This condition is
-> deliberately in this package's provider rather than little-sister's slot core:
-> a package that offers only `node.actions` must not lose its sole action merely
-> because the node has one member. Prose and node-only configurations retain their
-> node action, and the existing no-reasons, healthy-node and container rules remain.
-
-> **Update (2026-08-08):** the chip became a **package**, and decision 9 changed with
-> it. Registration is now the *import* — `import little_sister_jira`
-> in a deployment's `wsgi.py`, which declares the aspect, reads the file and fills the
-> slots the file asks for — because a deployment should wire an installed extension
-> the same way it wires an installed check type, and one line is the whole of it. The
-> `jira` aspect name is therefore claimed by **a package** rather than by the
-> deployment that uses it: `config/jira.yaml` belongs to this project in every
-> installation, which is why the name matches the package rather than the concept.
-> Decision 8 is unchanged and its boundary is now worth stating: what costs the
-> button is a broken *file*. A configuration **tree** that will not resolve — a
-> missing root, or the aspect stored in a shape it does not have — stays fatal,
-> because that is little-sister's refusal to start and not an extension's to
-> soften.
-
-> **Update (2026-08-08, second):** three things the first package release settles,
-> all of them found by reading a rendered chip rather than the code.
->
-> **A draft is bounded by its transport, not by its display.** Decision 6 clamps the
-> summary and deliberately does not clamp the description — right about the display
-> budget, silent about the transport one. Everything travels in a `GET` query string
-> where percent-encoding roughly triples a traceback, so forty findings under one
-> band (the case the node chip exists for) reach around nine thousand characters and
-> a `{reasons}` field duplicates the body on top. Past the server's request-line
-> limit the operator gets a **414 instead of a form**, which is worse than no chip
-> because the chip still looks like it works. So `url_limit` bounds the whole URL,
-> default 6000 against a common 8 KB ceiling. What gives is the description and the
-> configured fields, in fair shares so a short field is not cut to make room for a
-> traceback that is going to be cut anyway; the ids and the summary never give.
-> Cutting is cheap here precisely because decision 6 already put a **link back to
-> the node** in the body — so a clamped draft says it was clamped and where the rest
-> is. The one exception is a limit too small to hold even that: the limit still
-> wins, because a URL the server refuses is not a draft anybody reads.
->
-> **Each placement steps aside where the other is the right subject.** The
-> single-member rule of the 2026-08-05 update had no counterpart for prose, so a
-> leaf with a stack trace and both placements configured drew a chip on every line
-> *and* one on the node — the very thing decision 5's reasoning argues against. The
-> rule belongs in the code and not in the configuration, because whether a node's
-> reasons are members is a property of the **check**, and no deployment can say "per
-> line for these nodes, per node for those" in one file. Both rules only ever stand
-> down in favor of a chip that is actually offered.
->
-> **`base_url` is validated.** Decision 8's "log it, decline the chip, touch nothing
-> else" covered every value except the one deciding *where the browser goes*: a
-> placeholder copied out of the example rendered a clickable chip pointing at a host
-> that does not exist. It is now an http(s) URL naming a host, with no query or
-> fragment — the last of those is not principle but arithmetic, since the form's own
-> parameters are appended after a `?`.
-
 ## Context
 
 When a check goes red the operator's next move is nearly always the same: open Jira,
@@ -138,23 +55,81 @@ that reason.
    registers (little-sister ADR-0035): `base_url`, `project_id`, `issue_type_id`, the
    chip `label`, a `summary_limit`, and a `fields` map of extra Jira field ids to
    templates over `{path}` `{name}` `{status}` `{observed}` `{reason}` `{summary}`
-   `{url}`. A custom field *number* is a fact about one Jira project, so it is an
-   operator edit and a restart, never a code change. Nothing in the file is a secret,
-   so no secret reference (little-sister ADR-0023) is involved; deleting the file
-   simply removes the chip.
-5. **Placement policy is ours, and it is two rules.** The library offers the slot on
-   every reason of every node; the provider declines a **container** (its reason is a
-   roll-up sentence — the check that actually failed is what an issue should name) and
-   declines an **OK** node (a healthy leaf may still carry a reason, and offering to
-   file a ticket for it is noise). Everything else — every non-OK leaf, on the
-   dashboard and on the leaf detail page, for every logged-in viewer — gets the chip.
-   The kiosk gets none, which the library already decides.
+   `{url}`, and a `{reasons}` token that expands to every line of the node,
+   newline-separated — the same name little-sister's own `config/actions.yaml` uses, so
+   an operator who knows one file knows this one. A custom field *number* is a fact
+   about one Jira project, so it is an operator edit and a restart, never a code
+   change. Nothing in the file is a secret, so no secret reference (little-sister
+   ADR-0023) is involved; deleting the file simply removes the chip.
+
+   The file also names **which placements this deployment offers**, in an `actions:`
+   block (`reason`, `node`), each inheriting the file's `label` and `fields` and free
+   to override either; the ids, the summary limit and `url_limit` stay at the top
+   level, because they are properties of the *project* rather than of a placement.
+   **An absent block means the reason chip only**, so installing the node chip stays a
+   decision rather than a button that arrives with an upgrade.
+5. **Placement policy is ours.** The library offers the slot on every reason of every
+   node; the provider declines a **container** (its reason is a roll-up sentence — the
+   check that actually failed is what an issue should name) and declines an **OK**
+   node (a healthy leaf may still carry a reason, and offering to file a ticket for it
+   is noise). Everything else — every non-OK leaf, on the dashboard and on the leaf
+   detail page, for every logged-in viewer — gets the chip. The kiosk gets none, which
+   the library already decides.
+
+   **The chip has a second placement.** little-sister's `node.actions` slot (its
+   ADR-0034, second slot) takes an action whose subject is the whole node, and that is
+   the right one where a check's reasons are **prose** — a failure message and its
+   stack trace are one condition and want one ticket, not two buttons. Where a check
+   declares its findings as **members** (little-sister ADR-0036) the per-line chip
+   stays right.
+
+   Its decline rules differ in one deliberate way: the node chip **does not decline
+   containers**, because the slot renders in the card head and a card at depth 1 *is* a
+   container. It declines a node with **no reasons** instead — a container with no
+   reading of its own has nothing to put in a ticket, and a draft summarized as
+   `/platform/ci:` with nothing after it is worse than no chip. Both chips still
+   decline a healthy node.
+
+   **Each placement steps aside where the other is the right subject.** When both are
+   enabled, the node chip is also the aggregate **Jira all** shortcut for several
+   addressable members. It declines a node with exactly one member because that
+   member's Jira chip already represents the same action; showing both is duplication,
+   not another useful choice. The counterpart holds for prose: a leaf with a stack
+   trace and both placements configured would otherwise draw a chip on every line *and*
+   one on the node — the very thing this decision's reasoning argues against. Both
+   rules only ever stand down in favor of a chip that is actually offered, and both sit
+   in this package's provider rather than in little-sister's slot core: a package that
+   offers only `node.actions` must not lose its sole action merely because the node has
+   one member. They belong in the code and not in the configuration, because whether a
+   node's reasons are members is a property of the **check**, and no deployment can say
+   "per line for these nodes, per node for those" in one file. Prose and node-only
+   configurations retain their node action, and the no-reasons, healthy-node and
+   container rules remain.
 6. **Summary is `<node path>: <reason on one line>`, path first**, clamped to
    `summary_limit` with an ellipsis: a Jira board shows the head of a summary and cuts
    the tail, so *which* thing broke has to survive the cut. The **description** carries
    the reason **whole** — a fenced traceback is exactly what the person picking the
    issue up needs — plus node path, status, observation time and an **absolute** link
    back to the node's page, because that link is read inside Jira.
+
+   **The node draft differs from the per-line one:** its **summary** is the node's
+   *first* reason line (same flattening and clamp) and its **description carries every
+   line**, because the ticket is about the whole condition.
+
+   **A draft is bounded by its transport, not by its display.** Clamping the summary is
+   right about the display budget and silent about the transport one. Everything
+   travels in a `GET` query string where percent-encoding roughly triples a traceback,
+   so forty findings under one band (the case the node chip exists for) reach around
+   nine thousand characters and a `{reasons}` field duplicates the body on top. Past
+   the server's request-line limit the operator gets a **414 instead of a form**, which
+   is worse than no chip because the chip still looks like it works. So `url_limit`
+   bounds the whole URL, default 6000 against a common 8 KB ceiling. What gives is the
+   description and the configured fields, in fair shares so a short field is not cut to
+   make room for a traceback that is going to be cut anyway; the ids and the summary
+   never give. Cutting is cheap here precisely because the description already carries
+   a **link back to the node** — so a clamped draft says it was clamped and where the
+   rest is. The one exception is a limit too small to hold even that: the limit still
+   wins, because a URL the server refuses is not a draft anybody reads.
 7. **Field templates substitute, they do not `format`.** A reason is captured output
    and routinely contains a brace, which `str.format` would read as a field name and
    raise on. Unknown tokens are left standing rather than erased, so a typo shows up in
@@ -163,6 +138,18 @@ that reason.
    or invalid `config/jira.yaml` is logged once at startup; the provider then declines
    every line and the dashboard is untouched. A monitor that refuses to start because
    an issue tracker is misconfigured has the priorities backwards.
+
+   What costs the button is a broken *file*. A configuration **tree** that will not
+   resolve — a missing root, or the aspect stored in a shape it does not have — stays
+   fatal, because that is little-sister's refusal to start and not an extension's to
+   soften.
+
+   **`base_url` is validated**, because "log it, decline the chip, touch nothing else"
+   covers every value except the one deciding *where the browser goes*: a placeholder
+   copied out of the example rendered a clickable chip pointing at a host that does not
+   exist. It is an http(s) URL naming a host, with no query or fragment — the last of
+   those is not principle but arithmetic, since the form's own parameters are appended
+   after a `?`.
 9. **Registration is one import.** `import little_sister_jira`, before
    `little_sister.app`, declares the aspect, reads the file and fills the slots the
    file asks for. Which extensions a deployment installs stays a decision readable

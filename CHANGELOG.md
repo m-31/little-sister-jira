@@ -10,7 +10,38 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-08-10
+## [0.1.1] - 2026-08-23
+
+### Changed
+
+- **Breaking for an install: this package declares check API epoch 2.** little-sister
+  took the whole `subnodes:` block into its own hands and three names left its
+  promised surface (its ADR-0025). Nothing in this package used them, and nothing it
+  does changes — no configuration key moves, no slot changes, no draft is worded
+  differently. What changes is which library it may be installed beside: the epoch
+  versions little-sister's *whole* surface, so an extension that registers no check
+  type still declares it, and an older library is refused at startup naming both
+  numbers.
+
+### Fixed
+
+- **`little_sister_jira.__version__` reports the installed version again.** It was a
+  literal, frozen at `0.1.0` — right for the first release and wrong from this one on,
+  a second source of a fact `pyproject.toml` already owns. It is read from the
+  installed distribution's metadata now, the way little-sister reads its own, so it
+  cannot disagree with the package that carries it; in a source tree with no install
+  it reads `0+unknown` rather than a number that would be wrong.
+
+### Requires
+
+- **`little-sister >= 0.3.13`**, up from 0.3.11: that is the release whose
+  surface this package's epoch names. The reason the floor already carried
+  still holds — the template slots, registered configuration aspects and typed
+  value readers this package writes against — and what the epoch adds is the
+  upgrade a floor cannot see: an older library is refused at startup naming
+  both numbers. Still a **floor, never a pin**.
+
+## [0.1.0] - 2026-08-09
 
 ### Added
 

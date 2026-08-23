@@ -26,14 +26,19 @@ a floor has no ceiling (little-sister ADR-0051). The epoch versions little-siste
 whole promised surface, not only the names a check type uses, which is why an
 extension that registers no check type still declares one.
 """
+from importlib.metadata import PackageNotFoundError, version
+
 from little_sister.checks import require_api
 
-require_api(1)
+require_api(2)
 
 from little_sister_jira import jira  # noqa: E402  imported after the epoch check
 
 jira.register()
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("little-sister-jira")
+except PackageNotFoundError:  # running from a source tree with no install
+    __version__ = "0+unknown"
 
 __all__ = ["jira"]
