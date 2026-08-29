@@ -9,9 +9,10 @@ therefore needs one line in its ``wsgi.py``, before it imports
     from little_sister.app import app       # builds the engine, scans the config
 
 The order is load-bearing in both directions: the aspect has to be declared before
-the first configuration scan, or the library has already warned that
-``config/jira.yaml`` is not a known aspect, and a slot has to be filled before the
-first render.
+anything reads it — until then ``config/jira.yaml`` is not merely unclaimed but
+unreadable, because little-sister resolves an aspect by looking its name up in its own
+table and a miss raises ``KeyError`` — and a slot has to be filled before the first
+render.
 
 Unlike a check type, which registers by the ``@register`` side effect of defining
 its class, this extension has work to do at registration time — declare the aspect,

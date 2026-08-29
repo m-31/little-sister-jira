@@ -120,10 +120,13 @@ def registered(monkeypatch):
 def test_registration_declares_the_aspect_before_it_reads_it(aspect, registered):
     aspect(MINIMAL)
     jira.register()
-    # The aspect has to be known before the first configuration scan, and reading
-    # it *is* that scan: the unknown-candidate warning fires once per root at the
-    # first resolution, so a declaration arriving after it has nothing left to
-    # prevent. Both calls are recorded, so swapping them fails here.
+    # Declaring before reading is a requirement rather than a courtesy: little-sister
+    # resolves an aspect by looking its name up in `ASPECTS`, so `_load()` on an
+    # undeclared `jira` raises `KeyError` instead of reporting no configuration — and
+    # `_load` deliberately does not catch it (a failure of the configuration *tree* is
+    # not ours to answer), so the import itself would fail and take the deployment's
+    # boot with it, which is the opposite of decision 8. Both calls are recorded, so
+    # swapping them fails here.
     assert registered.index(("aspect", "jira")) < registered.index(("read", "jira"))
 
 

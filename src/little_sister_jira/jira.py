@@ -174,8 +174,8 @@ def register() -> None:
 
     Called from this package's ``__init__``, so a deployment's ``wsgi.py`` registers
     the whole extension with one import — placed **before** ``little_sister.app``,
-    because the aspect has to be known before the first configuration scan and the
-    slot before the first render.
+    because the aspect has to be declared before anything reads it — the next line
+    included — and the slot filled before the first render.
 
     A missing or broken ``config/jira.yaml`` costs the deployment its button and
     nothing else: the failure is logged, the provider then declines every line, and

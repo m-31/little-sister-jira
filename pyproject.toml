@@ -1,6 +1,6 @@
 [project]
 name = "little-sister-jira"
-version = "0.1.1"
+version = "0.1.2"
 description = "Raise a Jira issue from a node, or from one of its reason lines — a little-sister surface extension."
 authors = [
     { name = "Michael Meyling" }

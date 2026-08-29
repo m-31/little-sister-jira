@@ -10,6 +10,26 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-29
+
+### Fixed
+
+- **This package's own instructions were wrong about what a late registration
+  costs.** The docstring a deployment reads to place `import little_sister_jira` in
+  its `wsgi.py` said the line had to come before the first configuration scan "or the
+  library has already warned that `config/jira.yaml` is not a known aspect" — which
+  reads as advice with a log line attached, and is the kind of ordering rule somebody
+  relaxes. The real consequence is harder: little-sister resolves an aspect by looking
+  its name up in its own table, so an undeclared `jira` is not an *unclaimed* file but
+  an **unreadable** one. `_load()` gets a `KeyError` and deliberately does not catch
+  it — a failure of the configuration *tree* is not this package's to answer — so an
+  import placed too late takes the deployment's boot with it rather than costing it a
+  chip. `register()`'s docstring carried the same sentence and now carries this one.
+
+  **Nothing executable moved.** The ordering requirement is exactly what it has always
+  been and the shipped behavior is unchanged; what was wrong was the reason given for
+  it, which is the half a reader acts on when deciding where the import may go.
+
 ## [0.1.1] - 2026-08-23
 
 ### Changed
