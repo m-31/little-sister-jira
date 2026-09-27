@@ -224,7 +224,7 @@ def test_the_shipped_examples_placeholder_host_is_refused():
         jira._parse(_example(edited=False), str(EXAMPLE))
 
 
-# --- the node chip (ADR-0001 amendment) ----------------------------------------
+# --- the node chip (ADR-0001) --------------------------------------------------
 
 def test_no_actions_block_means_the_reason_chip_only():
     # Installing the node chip is a decision: a deployment that says nothing keeps

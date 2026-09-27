@@ -56,8 +56,10 @@ that reason.
    chip `label`, a `summary_limit`, and a `fields` map of extra Jira field ids to
    templates over `{path}` `{name}` `{status}` `{observed}` `{reason}` `{summary}`
    `{url}`, and a `{reasons}` token that expands to every line of the node,
-   newline-separated — the same name little-sister's own `config/actions.yaml` uses, so
-   an operator who knows one file knows this one. A custom field *number* is a fact
+   newline-separated. The names are this package's own: little-sister's
+   `config/actions.yaml` spells the status `{code}` where this file says `{status}`,
+   and `examples/jira.yaml` says so beside the token, since the two files are separate
+   vocabularies an operator meets one at a time. A custom field *number* is a fact
    about one Jira project, so it is an operator edit and a restart, never a code
    change. Nothing in the file is a secret, so no secret reference (little-sister
    ADR-0023) is involved; deleting the file simply removes the chip.

@@ -17,7 +17,7 @@ Jira credential and holds no token.
 
 ## The contract
 
-- **Requires** `little-sister >= 0.3.13` — a floor, never a pin.
+- **Requires** `little-sister >= 0.3.18` — a floor, never a pin.
 - **Runs on** Python **3.11 or newer** — the library's floor, not a higher
   one of its own.
 - **Registers** the `jira` **configuration aspect** (`config/jira.yaml`) and fills
@@ -32,7 +32,7 @@ Jira credential and holds no token.
 # Pin them. A deployment names exact versions so an upgrade is a deliberate edit
 # rather than drift; a plugin is the one that declares a floor, because two plugins
 # that each pinned could not be installed together.
-dependencies = ["little-sister==0.3.13", "little-sister-jira==0.1.0"]
+dependencies = ["little-sister==0.3.18", "little-sister-jira==0.1.3"]
 ```
 
 ```python
@@ -140,26 +140,29 @@ and nothing here can discover it, so confirm it and set `url_limit` accordingly.
 ## Develop
 
 little-sister is declared as a **floor** — the release that promised the surface
-this package writes against — and it resolves **from the index**, like any other
-dependency. There is no `[tool.uv.sources]` table here, and the committed
-`uv.lock` is what a release runs against. To work against a local library
-checkout, add the redirect and **do not commit it**: uv reads the sources table of
-a dependency it resolves from a path or a checkout, so a committed line would
-follow this package into every deployment that installs it.
+this package writes against — and a release resolves it **from the index**, like any
+other dependency: a released tree carries no `[tool.uv.sources]` table, and its
+`uv.lock` names the index. Working against a library that is not on the index yet
+takes a redirect to the checkout beside this one:
 
 ```toml
-# pyproject.toml — locally, never committed
+# pyproject.toml — while the library is unreleased, and never in a release
 [tool.uv.sources]
-little-sister = { git = "file:///path/to/little-sister" }
+little-sister = { path = "../little-sister", editable = true }
 ```
 
-Restore `uv.lock` with it. The next `uv run` — the pre-commit gate is one — rewrites
-the lock to `source = { directory = … }`, so a redirect kept out of `pyproject.toml`
-can still reach a commit through the lock beside it.
+The redirect leaves a second trace by itself — the next `uv run`, and the pre-commit
+gate is one, rewrites `uv.lock` to name the directory — and the two go together:
+while the library is unreleased both may be committed, and neither may reach a
+release. uv reads the sources table of a dependency it resolves from a path or a
+checkout, so a released one would be imposed on every deployment that installs this
+package that way; an install from the index is unaffected. The comment on the sources
+table in `pyproject.toml` says what the window costs.
 
 ```bash
 uv sync
 uv run ruff check
+uv run shellcheck $(git ls-files -- '*.sh' 'hooks/pre-commit')
 uv run mypy
 uv run mypy --python-version 3.11   # against the floor, not the interpreter you have
 uv run pytest -q

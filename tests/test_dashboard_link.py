@@ -6,14 +6,17 @@ Every other test runs outside a Flask request context, where `_node_url` answers
 matters untested: inside a request the draft gains an **absolute** URL, because it
 is read inside Jira where a relative path means nothing.
 
-It is also the module's only coupling outside little-sister's promised surface
-(its `architecture.md` §11, which names neither `app` nor its routes): the URL is
-built with `url_for("status", …)`, so the **endpoint name** `status` is a string
-this package assumes. A rename in the library is permitted without a version bump
-and would not move the API epoch; what would happen is a `BuildError` per chip per
-render, contained by the slot machinery and therefore silent apart from a log.
-These tests do not prevent that. They make it visible: they are what fails if the
-route this package builds against is not the one it names.
+It is also one of the module's two couplings outside little-sister's promised
+surface (its `architecture.md` §11, which names neither `app` nor its routes; the
+node's attributes are the other): the URL is built with `url_for("status", …)`, so
+the **endpoint name** `status` is a string this package assumes. A rename in the
+library is permitted without a version bump and would not move the API epoch; what
+would happen is a `BuildError` per chip per render, contained by the slot machinery
+and therefore silent apart from a log. These tests cannot see that happen: the
+stand-in below registers the name itself, so it agrees with this package by
+construction. `test_real_page.py` renders the installed library's own pages and is
+what fails if the route moves; what is left here is the branch — an absolute link
+inside a request, none outside one.
 """
 from __future__ import annotations
 

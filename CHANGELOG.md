@@ -10,6 +10,26 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-27
+
+### Changed
+
+- **Breaking for an install: this package declares check API epoch 3.** little-sister
+  replaced a check's `run()` with `measure()` and `grade()`, and `CheckResult` lost
+  `subject` and `record` (little-sister ADR-0086). This package implements neither
+  method and reads neither field, and nothing it does changes — no configuration key
+  moves, no slot changes, no chip moves and no draft is worded differently. What
+  changes is which library it may be installed beside: an older one is refused at
+  startup naming both numbers, so a deployment moves its two pins together.
+
+### Requires
+
+- **`little-sister >= 0.3.18`**, up from 0.3.13: the first release that speaks check
+  API epoch 3. The template slots, registered configuration aspects and typed value
+  readers this package writes against are unchanged; what moved is the epoch, and a
+  floor naming an older library would let a resolver install the one `require_api()`
+  refuses at startup. Still a **floor, never a pin**.
+
 ## [0.1.2] - 2026-08-29
 
 ### Fixed
@@ -36,7 +56,7 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 
 - **Breaking for an install: this package declares check API epoch 2.** little-sister
   took the whole `subnodes:` block into its own hands and three names left its
-  promised surface (its ADR-0025). Nothing in this package used them, and nothing it
+  promised surface (little-sister ADR-0025). Nothing in this package used them, and nothing it
   does changes — no configuration key moves, no slot changes, no draft is worded
   differently. What changes is which library it may be installed beside: the epoch
   versions little-sister's *whole* surface, so an extension that registers no check
@@ -66,9 +86,9 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 ### Added
 
 - **First release: the Jira issue chip**, extracted from the private deployment it
-  grew up in. The behavior is unchanged — same drafts, same placement rules, same
-  configuration file. It is a **surface extension**: it registers no check type and
-  measures nothing.
+  grew up in — same drafts, same configuration file, and the placement rules below,
+  two of which are new with the move. It is a **surface extension**: it registers no
+  check type and measures nothing.
 - Two placements, chosen by the `actions:` block. **`reason`** puts one chip beside
   each reason line of a failing leaf, which is the right place where a check
   declares its findings as addressable members. **`node`** puts one chip on the

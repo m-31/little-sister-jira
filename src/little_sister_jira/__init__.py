@@ -6,7 +6,7 @@ therefore needs one line in its ``wsgi.py``, before it imports
 ``little_sister.app``::
 
     import little_sister_jira               # noqa: F401  aspect + both chips
-    from little_sister.app import app       # builds the engine, scans the config
+    from little_sister.app import app       # scans config; the start builds the engine
 
 The order is load-bearing in both directions: the aspect has to be declared before
 anything reads it — until then ``config/jira.yaml`` is not merely unclaimed but
@@ -31,7 +31,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from little_sister.checks import require_api
 
-require_api(2)
+require_api(3)
 
 from little_sister_jira import jira  # noqa: E402  imported after the epoch check
 
