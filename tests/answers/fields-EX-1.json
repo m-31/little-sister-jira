@@ -1,0 +1,7 @@
+{"startAt": 0, "maxResults": 200, "total": 5, "fields": [
+ {"required": true, "schema": {"type": "string", "system": "summary"}, "name": "Summary", "key": "summary", "fieldId": "summary", "hasDefaultValue": false, "operations": ["set"]},
+ {"required": true, "schema": {"type": "issuetype", "system": "issuetype"}, "name": "Issue Type", "key": "issuetype", "fieldId": "issuetype", "hasDefaultValue": false, "operations": [], "allowedValues": [{"self": "https://tracker.example.org/rest/api/3/issuetype/1", "id": "1", "name": "Bug", "subtask": false}]},
+ {"required": true, "schema": {"type": "project", "system": "project"}, "name": "Project", "key": "project", "fieldId": "project", "hasDefaultValue": false, "operations": ["set"], "allowedValues": [{"self": "https://tracker.example.org/rest/api/3/project/10000", "id": "10000", "key": "EX", "name": "Example"}]},
+ {"required": true, "schema": {"type": "user", "system": "reporter"}, "name": "Reporter", "key": "reporter", "fieldId": "reporter", "hasDefaultValue": true, "operations": ["set"]},
+ {"required": false, "schema": {"type": "string", "system": "description"}, "name": "Description", "key": "description", "fieldId": "description", "hasDefaultValue": false, "operations": ["set"]}
+]}

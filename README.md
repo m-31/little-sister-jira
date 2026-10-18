@@ -7,8 +7,9 @@ pre-filled create-issue form.
 
 It is a **surface extension**, not a check type — it measures nothing and adds no
 `type:` name. What it adds is a button in two places little-sister declares, drawn
-only where an issue would make sense: not on a healthy node, not on a container's
-roll-up sentence, and not twice for the same finding.
+only where an issue would make sense: where the failure is — not on a healthy node,
+not on a branch that is red only by what fails beneath it, not on a container's
+roll-up sentence — and not twice for the same finding.
 
 Nothing is created behind the operator's back. The chip is a plain link opened in a
 new tab; Jira renders its own form, the browser's Jira session decides who is
@@ -23,6 +24,8 @@ Jira credential and holds no token.
 - **Registers** the `jira` **configuration aspect** (`config/jira.yaml`) and fills
   two template slots, `reason.actions` and `node.actions`. It registers **no check
   type**.
+- **Ships** one command, `python -m little_sister_jira.configure`, which writes that
+  file from a Jira Cloud project's answers — see **Configure**.
 
 ## Install
 
@@ -32,7 +35,7 @@ Jira credential and holds no token.
 # Pin them. A deployment names exact versions so an upgrade is a deliberate edit
 # rather than drift; a plugin is the one that declares a floor, because two plugins
 # that each pinned could not be installed together.
-dependencies = ["little-sister==0.3.18", "little-sister-jira==0.1.3"]
+dependencies = ["little-sister==0.3.18", "little-sister-jira==0.1.4"]
 ```
 
 ```python
@@ -50,18 +53,42 @@ __all__ = ["app"]                       # without it, lint calls the app import 
 
 ## Configure
 
-Copy [`examples/jira.yaml`](examples/jira.yaml) into your configuration root as
-`config/jira.yaml` and replace the ids with your own:
+From your deployment's root, give the command the address of one of your Jira Cloud
+project's pages — a board, its backlog, its issue list or an issue:
+
+```bash
+python -m little_sister_jira.configure https://<your-site>.atlassian.net/jira/software/projects/<KEY>/boards/1
+```
+
+It holds no credential and signs in to nothing. It names the addresses to open in a
+browser signed in to Jira and the file to save each answer as — the account and the
+project first, then, once you have chosen an issue type, that type's create form — and
+goes on when you press Enter. From what Jira answered it writes `config/jira.yaml`, or
+prints the file where your configuration has one already or names its roots in
+`LITTLE_SISTER_CONFIG_DIR`; it never replaces one. The answers stay where they were
+saved — your Downloads folder, unless `--answers DIR` names another — so a run for
+another issue type (`--issue-type <id or name>`) asks only for that type's.
+
+For each field the create form **requires** it writes a line by the field's kind: a
+text field gets a template in `fields:`, `"{name}: {reason}"`, with its name above it; a
+field with a list of values, a commented line per value with its id and label, one to
+uncomment; any other kind, such as a user or a date, a comment saying a draft cannot
+fill it, so Jira's form asks for it. What every draft carries anyway and what Jira gives
+a default are left out. Your account id is there as a commented `reporter:` — a pinned
+reporter files everyone's tickets under one name. Jira Cloud only: a site whose
+`/myself` answer carries no `accountId` is refused.
+
+The endpoints it reads, for finding the ids by hand instead:
+`/rest/api/3/project/<KEY>` gives `project_id` and the issue types' ids, and
+`/rest/api/3/issue/createmeta/<KEY>/issuetypes/<id>` the fields that type's create form
+requires. [`examples/jira.yaml`](examples/jira.yaml) is the whole shape to copy as
+`config/jira.yaml`. The three ids are required; everything else has a default:
 
 ```yaml
 base_url: https://<your-site>.atlassian.net
 project_id: "10000"
 issue_type_id: "10002"
 ```
-
-Those three are required; everything else has a default. The ids come from Jira's
-own API — `/rest/api/3/project/<KEY>`, `/rest/api/3/issuetype/project?projectId=…`
-and `/rest/api/3/field`.
 
 `base_url` is **checked**: an http(s) URL naming a host, with no query or fragment.
 The example's value is deliberately not one, so copying the file unedited is refused
@@ -74,7 +101,7 @@ a dead button looks exactly like a working one.
 | `summary_limit` | where the summary is cut with an ellipsis. Default 200; Jira's own limit is 255 |
 | `url_limit` | how long the whole chip URL may get. Default 6000 — see **Long drafts** below |
 | `fields` | extra Jira fields by id, each a template over the tokens below — this is how a project's required custom field gets filled |
-| `actions` | which chips are offered: `reason`, `node`, or both. Each inherits `label` and `fields` and may override either. **Absent means the per-reason chip only** |
+| `actions` | which chips are offered: `reason`, `node`, or both. Each inherits `label` and `fields` and may override either, and `node` may name its `icon` — see **What a draft looks like**. **Absent means the per-reason chip only** |
 
 A field template may interpolate `{path}` `{name}` `{status}` `{observed}`
 `{reason}` `{reasons}` `{summary}` `{url}`. Substitution is plain replacement, not
@@ -101,6 +128,19 @@ The two placements differ in subject. The `reason` chip is about **one line**: i
 summary and description are that line. The `node` chip is about the **whole
 condition**: its summary is the node's first line and its description carries every
 line.
+
+The `node` chip stands **where the failure is**. A branch whose own status is OK —
+one whose line is its check's coverage sentence, *12 functions in scope*, say — shows
+the color of whatever fails beneath it, and offers no chip: its lines say nothing
+about that failure, and the node that failed offers its own.
+
+In a head's row the `node` chip can be a **square**: `icon: jira` in the
+`actions.node` block draws this package's own glyph, a plus on an issue card, in
+little-sister's own square, the label as its tooltip and its accessible name — on
+little-sister 0.3.21 or newer, which draws a node's actions in every head and says
+which. Without the key, or on an older library, the node chip wears its label, and
+the per-line chip always does. `jira` is the one name the package draws; any other is
+named at startup and keeps the label.
 
 Where both are offered, **each steps aside where the other is the right subject**.
 Where a check declares its findings as addressable members, the node chip is the

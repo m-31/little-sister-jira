@@ -1,13 +1,15 @@
 # ADR-0001 — Raise a Jira issue from a reason line
 
 - **Status:** Accepted
-- **Date:** 2026-08-01 (adopted into this repository 2026-08-08)
+- **Date:** 2026-10-17 (accepted 2026-08-01, adopted into this repository 2026-08-08)
 - **Related:** little-sister **ADR-0034** (template slots — the seam this fills),
   little-sister **ADR-0035** (registered configuration aspects — where
   `config/jira.yaml` gets to live), little-sister **ADR-0036** (addressable
   members — what decides which placement a ticket belongs to), little-sister
   **ADR-0018** (why this package builds no HTML), little-sister **ADR-0023**
-  (secret references — deliberately unused here, see §4)
+  (secret references — deliberately unused here, see §4), little-sister **ADR-0127**
+  (the wall as a tree — a node's actions in every head, and the square an action
+  with an icon takes there)
 
 > This record was written in the private deployment the chip grew up in and moved
 > here with the code. Its numbering is this repository's; every reference to one of
@@ -70,6 +72,21 @@ that reason.
    level, because they are properties of the *project* rather than of a placement.
    **An absent block means the reason chip only**, so installing the node chip stays a
    decision rather than a button that arrives with an upgrade.
+
+   **The node placement may name an `icon`**, and it alone: on a line, a chip's label
+   says what a square cannot. `icon: jira` makes the node chip, in a head's row,
+   little-sister's own icon square — `.node-action.is-icon`, the frame the library's
+   own actions take there (little-sister **ADR-0127** decision 3) — with this
+   package's own drawing in it, a plus on an issue card, written in
+   `templates/node_actions.html` beside the label chip. The label becomes the square's
+   tooltip and accessible name, and the draft does not change. The square stands only
+   where the slot says it renders in a head — the `place` it hands over from
+   little-sister 0.3.21 on, `card`, `box` or `frame` — and a library that does not say
+   where gets the label chip, so the square raises no floor. The package draws one
+   name: any other is named at startup and keeps the label, and a block without the key
+   keeps it too, so an upgrade changes no head nobody asked to change. The drawing is
+   the package's own and not Atlassian's mark, as little-sister draws its own glyph
+   for a name it may not ship (little-sister **ADR-0030** decision 3).
 5. **Placement policy is ours.** The library offers the slot on every reason of every
    node; the provider declines a **container** (its reason is a roll-up sentence — the
    check that actually failed is what an issue should name) and declines an **OK**
@@ -86,11 +103,17 @@ that reason.
    stays right.
 
    Its decline rules differ in one deliberate way: the node chip **does not decline
-   containers**, because the slot renders in the card head and a card at depth 1 *is* a
+   containers**, because the slot renders in a node's head and a card at depth 1 *is* a
    container. It declines a node with **no reasons** instead — a container with no
    reading of its own has nothing to put in a ticket, and a draft summarized as
    `/platform/ci:` with nothing after it is worse than no chip. Both chips still
-   decline a healthy node.
+   decline a healthy node — for the node chip, one whose **own** status is OK, whatever
+   its children's: what little-sister's node calls `own_counted`, the status it counts
+   for itself. A branch with a line of its own, such as a check's coverage sentence,
+   shows the color of whatever fails beneath it, and a draft written from its lines
+   would file that failure under a line that says nothing about it; so the node chip
+   stands where the failure is, on the node that counts it. The per-line chip never
+   stands on a container, so the status it reads is a leaf's own.
 
    **Each placement steps aside where the other is the right subject.** When both are
    enabled, the node chip is also the aggregate **Jira all** shortcut for several
@@ -156,8 +179,9 @@ that reason.
    `little_sister.app`, declares the aspect, reads the file and fills the slots the
    file asks for. Which extensions a deployment installs stays a decision readable
    where it is taken — it is now a line in the dependency list and a line in
-   `wsgi.py`, rather than a call into the deployment's own code. `/system` then lists
-   the package that answers for the aspect.
+   `wsgi.py`, rather than a call into the deployment's own code. little-sister's System
+   page then lists the package that answers for the aspect, on the view it calls
+   *Installed*, `/system/installed` (little-sister **ADR-0100**).
 
 ## Consequences
 
@@ -173,6 +197,11 @@ that reason.
   aspects) and none of its check-authoring surface beyond the typed value readers.
   Each is part of the library's version contract, so the declared floor is what keeps
   them stable and the declared API epoch is what refuses an upgrade past them.
+- Three things it reads sit outside that contract, on purpose: the attributes of the
+  node a slot hands over, the dashboard endpoint a draft links back to, and the class
+  of the icon square. A test that renders the library's own pages is what notices when
+  one of them moves; the slot machinery would contain the failure, and a deployment
+  would lose a chip or a link without a word.
 - The `jira` aspect name is claimed in every deployment that installs this package.
   That is the cost of an aspect owned by a package rather than by a deployment, and it
   is why the name is the package's own.
@@ -195,5 +224,6 @@ that reason.
   gets it.
 - **Put the chip only on the leaf detail page.** Fewer buttons on the dashboard, but
   the moment worth capturing is the one where the operator is looking at the red card.
-  The library's hover-reveal keeps the grid calm, which is what that concern was
-  really about.
+  The library's hover-reveal kept the grid calm then, which is what that concern was
+  really about; since little-sister 0.3.21 shows a node's actions in every head, what
+  keeps it calm is decision 5 — a chip stands only where the failure is.

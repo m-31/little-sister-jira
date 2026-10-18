@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -47,7 +48,8 @@ class FakeCode:
 
 @dataclass(frozen=True)
 class FakeNode:
-    """The shape `StatusSnapshot` presents to the provider, and nothing more."""
+    """The shape `StatusSnapshot` presents to the provider, and nothing more — but
+    for `own`, which is how a test says what `own_counted` answers."""
     path: str = "/platform/ci/actions"
     name: str = "actions"
     code: FakeCode = FakeCode("ERROR")
@@ -55,6 +57,15 @@ class FakeNode:
     children: tuple[object, ...] = ()
     reason: tuple[str, ...] = ("workflow `build` failed", "and `test` after it")
     members: bool = False
+    #: What the node counts for itself where that is not what it shows: a branch
+    #: whose own reading is OK above a failure. ``None`` is every other node's case —
+    #: a leaf, or a branch failing itself, counts for itself what it shows.
+    own: FakeCode | None = None
+
+    @property
+    def own_counted(self) -> FakeCode:
+        """`StatusSnapshot.own_counted`, a property there as well."""
+        return self.own if self.own is not None else self.code
 
 
 BOTH = jira.JiraConfig(
@@ -340,6 +351,134 @@ def test_the_node_chip_declines_a_healthy_node():
                             surface="grid") is None
 
 
+# --- the node chip stands where the failure is ----------------------------------
+
+#: A function that failed, and the branch above it: a check's node with a line of its
+#: own — how many functions are in scope — which is OK itself and shows the color of
+#: the failure beneath it.
+FAILED = FakeNode(path="/aws/lambda/resize", name="resize",
+                  reason=("3 errors in the last 1h, the newest 4m ago",))
+
+
+def _branch(*, shown: str, own: str) -> FakeNode:
+    return FakeNode(path="/aws/lambda", name="lambda", code=FakeCode(shown),
+                    own=FakeCode(own), children=(FAILED,),
+                    reason=("12 functions in scope (one region)",))
+
+
+@pytest.mark.parametrize("shown", ["ERROR", "WARN"])
+def test_the_node_chip_declines_a_node_that_is_healthy_itself(shown):
+    # Red only by roll-up: its line is its own reading and says nothing about what
+    # failed, so a draft from it would file that failure under the wrong line.
+    jira.use_config(BOTH)
+    assert jira.node_action(node=_branch(shown=shown, own="OK"),
+                            surface="grid") is None
+
+
+def test_the_failure_beneath_a_healthy_branch_keeps_its_chip():
+    jira.use_config(BOTH)
+    context = jira.node_action(node=FAILED, surface="grid")
+    assert context is not None
+    assert _query(str(context["jira_url"]))["summary"] == [
+        "/aws/lambda/resize: 3 errors in the last 1h, the newest 4m ago"]
+
+
+@pytest.mark.parametrize("own", ["ERROR", "WARN", "MAINTENANCE"])
+def test_a_node_that_is_not_healthy_itself_keeps_its_chip(own):
+    # WARN is also what a branch counts for itself when its own reading went stale:
+    # a check that stopped reading is a failure of the branch's own.
+    jira.use_config(BOTH)
+    context = jira.node_action(node=_branch(shown="ERROR", own=own), surface="grid")
+    assert context is not None
+    assert _query(str(context["jira_url"]))["summary"] == [
+        "/aws/lambda: 12 functions in scope (one region)"]
+
+
+def test_a_node_that_does_not_say_what_it_counts_for_itself_keeps_its_chip():
+    # A library before 0.3.20 hands over a node without `own_counted`. Not knowing is
+    # not healthy, so nothing moves there: the chip stands where it always stood.
+    jira.use_config(BOTH)
+    node = SimpleNamespace(path="/aws/lambda", name="lambda", code=FakeCode("ERROR"),
+                           timestamp=None, children=(FAILED,), members=False,
+                           reason=("12 functions in scope (one region)",))
+    assert jira.node_action(node=node, surface="grid") is not None
+
+
+# --- the node chip as a square in a head's row -----------------------------------
+
+#: Both chips, the node chip naming the one icon this package draws.
+SQUARE = jira.JiraConfig(
+    base_url="https://tracker.example.org", project_id="10000", issue_type_id="10002",
+    actions={"reason": jira.ActionConfig(label="Jira"),
+             "node": jira.ActionConfig(label="Jira all", icon="jira")},
+)
+
+
+@pytest.mark.parametrize("place", ["card", "box", "frame"])
+def test_icon_jira_makes_the_node_chip_a_square_in_every_head(place):
+    # A card's head, a nested box's, a node page's frame: each is a head's row, where
+    # little-sister draws an action that names an icon as a square.
+    jira.use_config(SQUARE)
+    context = jira.node_action(node=FakeNode(), surface="grid", place=place)
+    assert context is not None
+    assert (context["jira_icon"], context["jira_label"]) == ("jira", "Jira all")
+
+
+def test_a_library_that_does_not_say_where_gets_the_label_chip():
+    # little-sister before 0.3.21 hands over no `place`, and draws no square.
+    jira.use_config(SQUARE)
+    assert jira.node_action(node=FakeNode(), surface="grid")["jira_icon"] == ""
+
+
+def test_a_place_that_is_no_head_gets_the_label_chip():
+    jira.use_config(SQUARE)
+    assert jira.node_action(node=FakeNode(), surface="grid",
+                            place="menu")["jira_icon"] == ""
+
+
+def test_a_block_without_icon_keeps_the_label_chip():
+    # So that an upgrade changes no head nobody asked to change.
+    jira.use_config(BOTH)
+    assert jira.node_action(node=FakeNode(), surface="grid",
+                            place="card")["jira_icon"] == ""
+
+
+def test_icon_jira_is_read_from_the_node_block():
+    parsed = jira._parse({
+        "base_url": "https://t.example.org", "project_id": "1", "issue_type_id": "2",
+        "actions": {"node": {"label": "Jira all", "icon": "jira"}},
+    }, "config/jira.yaml")
+    assert parsed.action("node").icon == "jira"
+
+
+def test_an_icon_this_package_does_not_draw_is_named_and_keeps_the_label(caplog):
+    parsed = jira._parse({
+        "base_url": "https://t.example.org", "project_id": "1", "issue_type_id": "2",
+        "actions": {"node": {"icon": "grafana"}},
+    }, "config/jira.yaml")
+    assert parsed.action("node").icon == ""
+    assert "the icon 'grafana'" in caplog.text and "(it draws: jira)" in caplog.text
+
+
+def test_icon_is_the_node_blocks_alone(caplog):
+    # A line's chip keeps its label wherever it stands, so `icon` under `reason` is a
+    # key that placement does not know, and is named as one.
+    parsed = jira._parse({
+        "base_url": "https://t.example.org", "project_id": "1", "issue_type_id": "2",
+        "actions": {"reason": {"icon": "jira"}},
+    }, "config/jira.yaml")
+    assert parsed.action("reason").icon == ""
+    assert ("actions.reason has unknown key(s): icon (known: fields, label)"
+            in caplog.text)
+
+
+def test_the_line_chip_is_handed_no_icon():
+    jira.use_config(SQUARE)
+    context = jira.reason_action(node=FakeNode(members=True), reason="x", index=0,
+                                 surface="grid")
+    assert context is not None and not context.get("jira_icon")
+
+
 def test_neither_chip_appears_without_a_configuration():
     jira.use_config(None)
     assert jira.node_action(node=FakeNode(), surface="grid") is None
@@ -361,6 +500,7 @@ def test_the_shipped_example_offers_both_chips():
     assert parsed.action("reason") is not None
     assert parsed.action("node") is not None
     assert parsed.action("node").label == "Jira all"
+    assert parsed.action("node").icon == "jira"
 
 
 # --- the placements step aside for each other -----------------------------------
@@ -449,7 +589,9 @@ def test_a_container_declaring_one_member_still_gets_a_chip():
 
 
 def test_no_node_shape_loses_every_chip():
-    # The property behind the rule above, over the shapes a snapshot can present.
+    # The property behind the rule above, over the shapes a snapshot can present of
+    # a node that fails itself. One that is healthy itself is meant to draw nothing:
+    # its failure is beneath it, and the node that failed draws the chip.
     jira.use_config(BOTH)
     for children in ((), (FakeNode(),)):
         for members in (False, True):

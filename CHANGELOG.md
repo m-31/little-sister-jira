@@ -10,6 +10,60 @@ slots are filled as a breaking change** and say so at the top: a deployment's
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-18
+
+A release to install beside little-sister 0.3.21, which draws a node's actions in every
+head: the node chip now stands only where the failure is, and can be a square there.
+Upgrading asks no edit and moves no floor — it still installs beside little-sister
+0.3.18. What is new is optional: an `icon` key in the `actions.node` block, which a
+`jira.yaml` may carry only from this release on, and a command that writes the file
+from a Jira Cloud project's address.
+
+### Added
+
+- **Breaking for a configuration: a new key, `icon`, in the `actions.node` block.**
+  `icon: jira` makes the node chip, in a head's row, little-sister's own icon square
+  with this package's own glyph in it, a plus on an issue card; the label becomes the
+  square's tooltip and its accessible name, and the draft does not change. It takes
+  little-sister 0.3.21 or newer, which draws a node's actions in every head and says
+  which; on an older library the chip wears its label, so no floor moves. `jira` is
+  the one name the package draws — any other is named at startup and keeps the label
+  — and a block without the key keeps the label too, so an upgrade changes no head
+  nobody asked to change. The per-line chip takes no `icon`. `examples/jira.yaml`
+  carries `icon: jira`, and the `configure` command writes it. An older release of
+  this package names the key as unknown at startup and draws the label chip, so a
+  deployment writes the key with the release that reads it (ADR-0001 decision 4).
+- **`python -m little_sister_jira.configure` writes `config/jira.yaml` from a Jira
+  Cloud project's address** (ADR-0002). Run it from the deployment's root with the
+  address of one of the project's pages — a board, its backlog, its issue list or an
+  issue. It names the addresses to open in a browser signed in to Jira and the file to
+  save each answer as, and builds the file from what Jira answered: the ids, each field
+  the issue type's create form requires written by its kind, and your account id as a
+  commented `reporter:`. It holds no credential and calls nothing. Where the
+  configuration has a `jira.yaml` already, or names its roots in
+  `LITTLE_SISTER_CONFIG_DIR`, it prints the file instead of writing one. Jira Cloud
+  only.
+
+### Changed
+
+- **ADR-0001 says where the library lists this package.** little-sister's System page
+  is two views now, and the package that answers for the `jira` aspect is listed on
+  the one called *Installed*, `/system/installed` (little-sister ADR-0100); decision 9
+  says so. Prose only: no code moved.
+
+### Fixed
+
+- **The node chip stands where the failure is.** It was offered on a branch that is
+  healthy itself whenever anything beneath it failed, and its draft was written from
+  the branch's own line — a check's coverage sentence, *12 functions in scope*,
+  became the summary of a ticket about one function's error. little-sister 0.3.21
+  shows a node's actions in every head rather than on a hover, so the chip would have
+  stood in every head on the way to the failure. It is declined now on a node whose
+  **own** status is OK, whatever its children's; the node that failed keeps its chip,
+  and the per-line chip is unchanged (ADR-0001 decision 5). Nothing to edit: no key,
+  token or slot moved. On a library before 0.3.20, whose node does not say what it
+  counts for itself, the chip stays where it was.
+
 ## [0.1.3] - 2026-09-27
 
 ### Changed

@@ -88,6 +88,40 @@ def test_the_chip_classes_are_the_ones_the_frame_promises(environment, template)
     assert f'class="{expected}"' in html
 
 
+def test_in_a_head_the_node_chip_is_little_sisters_square_with_the_packages_glyph(
+        environment):
+    # The square is the library's own, as its own actions are drawn in a head's row:
+    # the class pair, the image's class, and the label as the tooltip and the name a
+    # screen reader says — which is also what the library writes beside the glyph when
+    # it folds the action behind ⋯. No visible label: the glyph alone.
+    html = environment.get_template("node_actions.html").render(
+        jira_url="https://tracker.example.org/x", jira_label="Jira all",
+        jira_title="Create a Jira issue for /platform/ci/actions", jira_icon="jira")
+    assert 'class="node-action is-icon"' in html
+    assert 'title="Jira all"' in html and 'aria-label="Jira all"' in html
+    assert '<svg class="action-icon" viewBox="0 0 16 16" width="16" height="16"' in html
+    assert html.rstrip().endswith("</svg></a>")
+    assert "Create a Jira issue" not in html
+
+
+def test_without_an_icon_the_node_chip_wears_its_label(environment):
+    html = environment.get_template("node_actions.html").render(
+        jira_url="https://tracker.example.org/x", jira_label="Jira all",
+        jira_title="Create a Jira issue for /platform/ci/actions", jira_icon="")
+    assert 'class="node-action"' in html and "is-icon" not in html
+    assert ">Jira all</a>" in html
+
+
+def test_a_line_chip_keeps_its_label_whatever_it_is_handed(environment):
+    # A line's chip keeps its label wherever it stands, as the library's line actions
+    # do; an icon handed to it by mistake changes nothing.
+    html = environment.get_template("reason_actions.html").render(
+        jira_url="https://tracker.example.org/x", jira_label="Jira",
+        jira_title="t", jira_icon="jira")
+    assert 'class="reason-action"' in html and "is-icon" not in html
+    assert ">Jira</a>" in html
+
+
 @pytest.mark.parametrize("template", sorted(REGISTERED.values()))
 def test_a_reason_folded_into_the_draft_is_escaped_by_jinja(environment, template):
     # A reason is assembled from captured output (little-sister ADR-0018). Nothing in
@@ -102,3 +136,10 @@ def test_a_reason_folded_into_the_draft_is_escaped_by_jinja(environment, templat
     assert "&lt;script&gt;" in html
     assert "&#34;" in html or "&quot;" in html
     assert "&amp;" in html
+
+
+def test_a_label_folded_into_the_squares_tooltip_is_escaped_by_jinja(environment):
+    html = environment.get_template("node_actions.html").render(
+        jira_url="https://tracker.example.org/x", jira_label='<b>"all"</b>',
+        jira_title="t", jira_icon="jira")
+    assert "<b>" not in html and "&lt;b&gt;" in html

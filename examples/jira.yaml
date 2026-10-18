@@ -13,10 +13,15 @@
 # link to Jira's own create-issue form, and the browser's Jira session decides who is
 # filing. Delete this file and the chips simply stop appearing.
 #
-# The ids come from Jira's own API:
-#   <base_url>/rest/api/3/project/<KEY>                      -> project_id
-#   <base_url>/rest/api/3/issuetype/project?projectId=<id>   -> issue_type_id
-#   <base_url>/rest/api/3/field                              -> the customfield_* numbers
+# The ids are Jira's, and one command reads them for you: from your deployment's
+# root, with the address of one of a Jira Cloud project's pages,
+#   python -m little_sister_jira.configure <address>
+# writes this file from the project's answers (the README says how). By hand, in a
+# browser signed in to Jira:
+#   <base_url>/rest/api/3/project/<KEY>                           -> project_id, and
+#                                                                    each issue type's id
+#   <base_url>/rest/api/3/issue/createmeta/<KEY>/issuetypes/<id>  -> the fields that
+#                                                                    type requires
 
 # --- The project ----------------------------------------------------------------
 # Required, all three. A misspelled key here is a warning and a chip that quietly
@@ -66,8 +71,8 @@ fields:
 #   reason   one chip per reason line of a failing leaf — the right place when a
 #            check declares its findings as members, so each is separately
 #            actionable (little-sister ADR-0036)
-#   node     one chip for the whole node, in the card head and beside the status on
-#            the leaf page — the right place when the reasons are prose, because a
+#   node     one chip for the whole node, in its head on the wall and on its own
+#            page — the right place when the reasons are prose, because a
 #            failure message and its stack trace are one condition and want one
 #            ticket; with several addressable members it is the "Jira all" shortcut,
 #            while one member keeps only its own reason chip
@@ -95,5 +100,11 @@ actions:
   reason: {}
   node:
     label: Jira all
+    # In a head's row, a square wearing this package's own glyph — a plus on an
+    # issue card — with the label as its tooltip, where little-sister draws a node's
+    # actions in the head (0.3.21 and newer). `jira` is the one name this package
+    # draws; any other is named at startup. Without it, or on an older library, the
+    # node chip wears its label. A line's chip always does.
+    icon: jira
     fields:
       customfield_10101: "{name}: {reasons}"

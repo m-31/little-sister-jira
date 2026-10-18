@@ -9,8 +9,8 @@ an issue, paste in what the dashboard already says. This fills little-sister's
 declares its findings as *members* (little-sister ADR-0036), each line is separately
 actionable and the chip belongs on the line: ``reason.actions``. Where the reasons are
 *prose* — a failure message and its stack trace are one condition — there is one thing
-to file and the chip belongs to the node, in the card head and beside the status on the
-leaf page. A per-line chip there would offer to raise a ticket about a stack trace.
+to file and the chip belongs to the node, in its head on the wall and on its own page.
+A per-line chip there would offer to raise a ticket about a stack trace.
 
 **Where both placements are offered, each steps aside where the other is the right
 subject** — and both rules are enforced here rather than left to the configuration,
@@ -21,6 +21,20 @@ same action), and a **prose** node declines the per-line chips (the node chip al
 covers the condition, and a chip per line would offer to file a stack trace). A
 deployment that offers only one placement keeps it in every case: stepping aside is
 only ever in favor of a chip that is actually there.
+
+**The node chip stands where the failure is.** A branch with a line of its own — a
+check's coverage sentence, *12 functions in scope* — shows the color of whatever fails
+beneath it, and a draft written from its lines would file that failure under the
+branch's own reading. So the node chip is declined on a node whose **own** status is OK,
+whatever its children's, and the node that failed keeps its chip.
+
+**In a head's row the node chip may be a square** — the package's own glyph, a plus on
+an issue card, with the label as its tooltip and its accessible name — where the
+deployment writes ``icon: jira`` in its ``actions.node`` block and the library says the
+chip stands in a head (the slot's ``place``, which little-sister hands over from 0.3.21
+on). The square is little-sister's own, the one its actions are drawn in; without the
+key, or on a library that does not say where, the chip wears its label as it always
+has.
 
 **A draft is bounded by its transport, not by the display.** Everything the chip
 carries travels in a `GET` query string, where percent-encoding roughly triples a
@@ -112,19 +126,40 @@ _KEYS = frozenset({"base_url", "project_id", "issue_type_id", "label",
 #: The placements an ``actions:`` block may name, and the slot each fills.
 PLACEMENTS = {"reason": "reason.actions", "node": "node.actions"}
 
-#: The keys one placement may carry — the two that differ between chips. The ids and
-#: the summary limit are properties of the *project*, not of a placement.
-_ACTION_KEYS = frozenset({"label", "fields"})
+#: The keys each placement may carry — what differs between chips — and the node
+#: chip's icon, which is its own: a line's chip keeps its label wherever it stands, as
+#: the library's line actions do. The ids and the summary limit are properties of the
+#: *project*, not of a placement.
+_ACTION_KEYS = {"reason": frozenset({"label", "fields"}),
+                "node": frozenset({"label", "fields", "icon"})}
+
+#: The icons this package draws itself, by the name ``icon:`` gives: its own drawing,
+#: a plus on an issue card, in ``templates/node_actions.html``. The name is the one
+#: the library's own icon registry knows Jira by — its built-in glyph, or a
+#: deployment's own mark under that name — so the file a deployment writes today is
+#: the file it keeps; a name drawn from that registry waits for little-sister to
+#: promise a slot filler the lookup its own actions use.
+OWN_ICONS = frozenset({"jira"})
+
+#: Where the slot says the node chip stands (``place``), the places that are a
+#: head's row — a card's head, a nested box's, a node page's frame — which is where
+#: little-sister draws an action with an icon as a square. A place this package
+#: does not know is given the label chip.
+HEAD_ROWS = frozenset({"card", "box", "frame"})
 
 
 @dataclass(frozen=True)
 class ActionConfig:
-    """How one chip differs from the file's defaults: its label and its fields."""
+    """How one chip differs from the file's defaults: its label, its fields and — the
+    node chip's alone — its icon."""
     label: str = "Jira"
     #: Extra Jira fields by id (``customfield_10101: "{name}: {reason}"``), each a
     #: template over the tokens in :func:`expand`. A custom field's *number* is a
     #: fact about one Jira project, so it belongs in config and not in this file.
     fields: Mapping[str, str] = field(default_factory=dict)
+    #: The icon the node chip is drawn with in a head's row, by name — one of
+    #: :data:`OWN_ICONS` — or ``""`` for the label chip.
+    icon: str = ""
 
 
 @dataclass(frozen=True)
@@ -225,11 +260,12 @@ def reason_action(*, node: object, reason: str, index: int,
     return _chip(action, node, reason)
 
 
-def node_action(*, node: object, surface: str) -> Mapping[str, object] | None:
+def node_action(*, node: object, surface: str,
+                place: str | None = None) -> Mapping[str, object] | None:
     """The ``node.actions`` context provider: one ticket for the whole node.
 
     Its rules differ from the per-line chip's in two ways. **Containers are not
-    declined**: this slot renders in the card head, and a card at depth 1 *is* a
+    declined**: this slot renders in a node's head, and a card at depth 1 *is* a
     container. It also acts as an **all-members shortcut** when several addressable
     members exist, but declines a single member when that member already has the
     reason action — the mirror of the prose rule in :func:`reason_action`, and for
@@ -240,9 +276,21 @@ def node_action(*, node: object, surface: str) -> Mapping[str, object] | None:
     silence. A node with **no reasons** is declined as
     well; it has nothing to put in a ticket, and a draft summarized as
     ``/platform/ci:`` with nothing after it is worse than no chip.
+
+    **Not on a node that is healthy itself** (:func:`_healthy_itself`), whatever
+    beneath it fails. Such a node is red only by roll-up, and its reason lines are
+    its own reading — a coverage sentence, *12 functions in scope* — so a draft
+    from them would file the failure under a line that says nothing about it. The
+    chip stands where the failure is: on the node beneath that counts it.
+
+    **Its icon, where it stands in a head.** With ``icon:`` in the block the chip
+    is a square in the head's row (``jira_icon``), its label the tooltip; ``place``
+    is how the library says the chip stands in one, and a library that hands over
+    no ``place`` — one older than 0.3.21, which draws no square — gets the label
+    chip, as does a place this package does not know.
     """
     action = _offered("node", node)
-    if action is None or _config is None:
+    if action is None or _config is None or _healthy_itself(node):
         return None
     lines = _reason_lines(node)
     if not lines:
@@ -251,8 +299,10 @@ def node_action(*, node: object, surface: str) -> Mapping[str, object] | None:
             and not getattr(node, "children", ())
             and _config.action("reason") is not None):
         return None
-    del surface  # the chip is the same in a card head and on the leaf page
-    return _chip(action, node, lines[0], body="\n".join(lines))
+    del surface  # the chip is the same on the wall and on a node's own page
+    square = action.icon if action.icon and place in HEAD_ROWS else ""
+    return {**_chip(action, node, lines[0], body="\n".join(lines)),
+            "jira_icon": square}
 
 
 def _offered(placement: str, node: object) -> ActionConfig | None:
@@ -267,6 +317,19 @@ def _offered(placement: str, node: object) -> ActionConfig | None:
     if code is not None and getattr(code, "name", "") == "OK":
         return None
     return _config.action(placement)
+
+
+def _healthy_itself(node: object) -> bool:
+    """Whether the node's **own** status is OK, whatever beneath it fails.
+
+    Read from ``own_counted`` — what the node counts for itself in what it rolls up
+    to: its own status, or its own reading degraded where that reading went stale —
+    rather than from ``code``, which on a branch is the worst of the node and of
+    everything beneath it. A node that does not carry the attribute, a library older
+    than 0.3.20's, is not known to be healthy, so its chip stays where it was.
+    """
+    own = getattr(node, "own_counted", None)
+    return own is not None and str(getattr(own, "name", "")) == "OK"
 
 
 def _chip(action: ActionConfig, node: object, reason: str,
@@ -631,6 +694,10 @@ def _parse_actions(body: Mapping[str, object], where: str, label: str,
     An unknown placement name warns and is skipped rather than raising — a typo there
     costs one chip, and a monitor that will not start because of it would have the
     priorities backwards.
+
+    ``icon`` is the node placement's alone, and inherits nothing: an icon this
+    package does not draw (:data:`OWN_ICONS`) is warned about and leaves the label
+    chip, for the same reason — the button still works, wearing its label.
     """
     raw = body.get("actions")
     if raw is None:
@@ -651,16 +718,24 @@ def _parse_actions(body: Mapping[str, object], where: str, label: str,
         if not isinstance(settings, Mapping):
             raise CheckError(f"{where}.actions.{name}: must be a mapping, got "
                              f"{type(settings).__name__}")
-        unknown = sorted(set(map(str, settings)) - _ACTION_KEYS)
+        known = _ACTION_KEYS[name]
+        unknown = sorted(set(map(str, settings)) - known)
         if unknown:
             logger.warning("jira: %s.actions.%s has unknown key(s): %s (known: %s)",
-                           where, name, ", ".join(unknown),
-                           ", ".join(sorted(_ACTION_KEYS)))
+                           where, name, ", ".join(unknown), ", ".join(sorted(known)))
+        icon = (values.text(settings, "icon", where=f"{where}.actions.{name}").strip()
+                if "icon" in known else "")
+        if icon and icon not in OWN_ICONS:
+            logger.warning("jira: %s.actions.%s names the icon %r, which this package "
+                           "does not draw (it draws: %s) — the chip keeps its label",
+                           where, name, icon, ", ".join(sorted(OWN_ICONS)))
+            icon = ""
         parsed[name] = ActionConfig(
             label=values.text(settings, "label", default=label,
                               where=f"{where}.actions.{name}"),
             fields=(_parse_fields(settings, f"{where}.actions.{name}")
                     if "fields" in settings else fields),
+            icon=icon,
         )
     return parsed
 

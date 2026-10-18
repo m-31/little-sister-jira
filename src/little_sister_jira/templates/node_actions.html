@@ -1,5 +1,5 @@
 {#- The `node.actions` filler (ADR-0001; little-sister ADR-0034's second slot): one
-    chip for the whole node, in the card head and beside the status on the leaf page.
+    chip for the whole node, in its head on the wall and on its own page.
 
     The twin of `reason_actions.html`, and deliberately identical apart from the chip
     class: the two rails are different places, and a chip belongs to the one it is in
@@ -12,6 +12,18 @@
     whole condition rather than one member of it. That is `jira.py`'s doing; this file
     only places what it computed, rendered by little-sister's own Jinja so the reason
     text folded into `jira_title` is escaped by the same rules as the reason itself
-    (little-sister ADR-0018). -#}
+    (little-sister ADR-0018).
+
+    **In a head's row it may be a square** (`jira_icon`, which `jira.py` sets where
+    the deployment wrote `icon: jira` and the library says the chip stands in a head):
+    the package's own glyph alone, a plus on an issue card drawn here, in
+    little-sister's own square — `.node-action.is-icon`, its image `.action-icon`, the
+    label its tooltip and its accessible name, which little-sister also writes beside
+    the glyph when it folds the action behind ⋯ (its ADR-0127 decision 3). -#}
+{%- if jira_icon %}
+<a class="node-action is-icon" href="{{ jira_url }}" target="_blank" rel="noopener noreferrer"
+   title="{{ jira_label }}" aria-label="{{ jira_label }}"><svg class="action-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="11" height="11" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 5.6v4.8M5.6 8h4.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></a>
+{%- else %}
 <a class="node-action" href="{{ jira_url }}" target="_blank" rel="noopener noreferrer"
    title="{{ jira_title }}" aria-label="{{ jira_title }}"><svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false"><path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>{{ jira_label }}</a>
+{%- endif %}
